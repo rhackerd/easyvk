@@ -1,0 +1,16 @@
+[
+{
+  "directory": "/home/rhacker/Documents/Projects/easyvk",
+  "arguments": ["/usr/bin/g++", "-c", "-m64", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-O3", "-std=c++23", "-DNDEBUG", "-o", "build/.objs/bin/linux/x86_64/release/src/main.cpp.o", "src/main.cpp"],
+  "file": "src/main.cpp"
+},
+{
+  "directory": "/home/rhacker/Documents/Projects/easyvk",
+  "arguments": ["/usr/bin/g++", "-c", "-m64", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-O3", "-std=c++23", "-Ieasyvk/inc", "-I", "/usr/include/libxml2", "-I", "/home/rhacker/.xmake/packages/v/vulkan-memory-allocator/v3.3.0/9f770a6c4bb14ae3aa29a94c3c669d3f/include", "-I", "/home/rhacker/.xmake/packages/v/vk-bootstrap/v1.4.354/3aa5028a5fd749b7a5399e7b283214fc/include", "-I", "/usr/include/eigen3", "-DNDEBUG", "-o", "build/.objs/easyvk/linux/x86_64/release/easyvk/src/core.cpp.o", "easyvk/src/core.cpp"],
+  "file": "easyvk/src/core.cpp"
+},
+{
+  "directory": "/home/rhacker/Documents/Projects/easyvk",
+  "arguments": ["/usr/bin/g++", "-c", "-m64", "-fvisibility=hidden", "-fvisibility-inlines-hidden", "-O3", "-std=c++23", "-Ieasyvk/inc", "-I", "/usr/include/libxml2", "-I", "/home/rhacker/.xmake/packages/v/vulkan-memory-allocator/v3.3.0/9f770a6c4bb14ae3aa29a94c3c669d3f/include", "-I", "/home/rhacker/.xmake/packages/v/vk-bootstrap/v1.4.354/3aa5028a5fd749b7a5399e7b283214fc/include", "-I", "/usr/include/eigen3", "-DNDEBUG", "-o", "build/.objs/easyvk/linux/x86_64/release/easyvk/src/easyvk.cpp.o", "easyvk/src/easyvk.cpp"],
+  "file": "easyvk/src/easyvk.cpp"
+}]
