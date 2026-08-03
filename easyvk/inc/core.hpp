@@ -13,48 +13,79 @@
 // limitations under the License.
 
 #pragma once
+#include "VkBootstrapDispatch.h"
 #include "vulkan/vulkan.hpp"
 #include <SDL3/SDL_video.h>
+#include <utility>
 #include <vector>
 #include "VkBootstrap.h"
 #include "SDL3/SDL.h"
 
+// Kanye West is the goat
+
 #define DEBUG false
 
 namespace ezvk::core {
+
+    constexpr bool debug_enabled = false;
+
+    using GPU_Queue = std::pair<vk::Queue, unsigned int>;
+
     struct Device {
         vkb::PhysicalDevice phys;
-        vkb::Device logical;
+        vkb::Device         logical;
+        vkb::DispatchTable  table;
+        // Queue family
+        GPU_Queue graphics;
+        GPU_Queue present;
+        GPU_Queue transfer;
+        GPU_Queue compute;
+    };
+
+    struct WindowCreateInfo {
+        const char*     title   = "easyvk window";
+        int             w       = 1280;
+        int             h       = 720;
+        SDL_WindowFlags flags   = 0;
     };
 
     struct Window {
-        SDL_Window* win;
-        vkb::Swapchain* swap;
+        SDL_Window      *handle = nullptr;
+        vk::SurfaceKHR  surface = nullptr;
+        vkb::Swapchain  swap;
+        Device          *device = nullptr;
     };
 
     struct Instance {
-        vkb::Instance instance;
-        Device* active_device;
-        std::vector<Device*> devices;
-        
+        vkb::Instance               instance;
+        std::vector<Device>         devices;
+        std::vector<Window>         windows;
+        vkb::InstanceDispatchTable  table;
     };
 
+    // Mainly for future use
     struct Handle {
         Instance* instance;
-        Window* window;
     };
 
 
     void init(Handle*);
     void destroy(Handle*);
 
-    void initWindow(Handle*);
+    void initWindow(WindowCreateInfo, Handle*);
 
     namespace low {
+        // struct Window
+        void initWindow(WindowCreateInfo, Window*, Handle*);
+        void initSwapchain(Window*, bool recreate = true);
+
         void initInstance(Instance*);
         void destroy(Instance*);
 
-        vkb::PhysicalDevice selectGPU(vkb::Instance);
+
+        // struct Device
+        vkb::PhysicalDevice selectGPU(vkb::Instance, vk::SurfaceKHR surface);
         void initDevice(vkb::PhysicalDevice, Device*);
+        void extractQueues(Device*);
     };
 };

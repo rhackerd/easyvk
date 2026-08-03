@@ -17,39 +17,66 @@
 #include <SDL3/SDL_video.h>
 #include <algorithm>
 #include <cstdio>
+#include <vulkan/vulkan_core.h>
+#include "SDL3/SDL_vulkan.h"
 
 namespace ezvk::core {
     void init(Handle* handle) {
-        if (handle->instance)
-        Instance instance = low::initInstance();
+        if (!handle->instance) {
+            Instance* instance;
+            low::initInstance(instance);
+        }
+        if (handle->instance->devices.empty()) {
+            Device* dev;
+            vkb::PhysicalDevice phys = low::selectGPU(handle->instance->instance);
 
-        vkb::PhysicalDevice phys_dev = low::selectGPU(instance.instance);
-        Device _dev = low::initDevice(phys_dev);
-
-        instance.devices.push_back(std::move(_dev));
-        instance.active_device = &instance.devices.back();
-
-        handle->instance = instance;
+        }
     }
 
-    Window createWindow(const char* title, int w, int h, SDL_WindowFlags) {
-        SDL_CreateWindow("", int w, int h, SDL_WindowFlags flags)   
+    void initWindow(WindowCreateInfo CI, Handle* handle) {
+        Window win;
+        low::initWindow(CI, &win, handle);
+        if (!win.surface) return;
+        low::initSwapchain(&win, false);
+        handle->instance->windows.push_back(win);
     }
 
 
     namespace low {
-        Instance initInstance() {
+
+        void initWindow(WindowCreateInfo CI, Window* win, Handle* handle) {
+            CI.flags |= SDL_WINDOW_VULKAN;
+            win->handle = SDL_CreateWindow(CI.title, CI.w, CI.h, CI.flags);
+            if (!win->handle) printf("easyvk: failed to create window");
+
+            bool result = SDL_Vulkan_CreateSurface(win->handle, handle->instance->instance, nullptr, reinterpret_cast<VkSurfaceKHR*>(&win->surface));
+            if (!result) {printf("easyvk: failed to create surface %s\n", SDL_GetError()); return;}
+        };
+
+        void initSwapchain(Window * win, bool recreate) {
+            vkb::SwapchainBuilder swap_builder(win->device->logical, win->surface);
+            if (recreate) swap_builder.set_old_swapchain(win->swap);
+            auto swap_ret = swap_builder.build();
+            if (!swap_ret) printf("easyvk: failed to create swapchain");
+            win->swap = swap_ret.value();
+            return;
+        };
+
+        void initInstance(Instance* instance) {
             vkb::InstanceBuilder builder;
             auto build_block = builder.set_app_name("easyvk");
 
-            #ifdef DEBUG
+            if (debug_enabled) {
                 build_block.request_validation_layers(true)
                 .use_default_debug_messenger();
-            #endif
+            }
 
             auto inst_ret = build_block.build();            
             if (!inst_ret) printf("easyvk: failed to initiate vulkan instance");
-            return {.instance = inst_ret.value()};
+
+            instance = new Instance();
+            instance->instance = inst_ret.value();
+            instance->table = inst_ret->make_table();
         }
 
         vkb::PhysicalDevice selectGPU(vkb::Instance instance, vk::SurfaceKHR surface) {
@@ -62,12 +89,33 @@ namespace ezvk::core {
             return phys_ret.value();
         }
 
-        Device initDevice(vkb::PhysicalDevice phys) {
+        void initDevice(vkb::PhysicalDevice phys, Device* device) {
             vkb::DeviceBuilder builder(phys);
             auto dev_ret = builder.build();
             if (!dev_ret) printf("easyvk: failed to initiate logical device\n");
             vkb::Device vkb_dev = dev_ret.value();
-            return {.phys = phys, .logical = vkb_dev};
-        }        
+            device->logical = vkb_dev;
+            device->phys = phys;
+            device->table = vkb_dev.make_table();
+        }
+
+        void extractQueues(Device*dev) {
+                // graphics
+            auto queue = dev->logical.get_queue_and_index(vkb::QueueType::graphics);
+            if (queue.has_value()) dev->graphics = std::make_pair(static_cast<vk::Queue>(queue.value().first), queue.value().second);
+            else printf("easyvk: failed to extract graphics queue\n");
+                // present
+            queue = dev->logical.get_queue_and_index(vkb::QueueType::present);
+            if (queue.has_value()) dev->present = std::make_pair(static_cast<vk::Queue>(queue.value().first), queue.value().second);
+            else printf("easyvk: failed to extract present queue\n");
+                // transfer
+            queue = dev->logical.get_queue_and_index(vkb::QueueType::transfer);
+            if (queue.has_value()) dev->transfer = std::make_pair(static_cast<vk::Queue>(queue.value().first), queue.value().second);
+            else printf("easyvk: failed to extract transfer queue\n");
+                // compute
+            queue = dev->logical.get_queue_and_index(vkb::QueueType::compute);
+            if (queue.has_value()) dev->compute = std::make_pair(static_cast<vk::Queue>(queue.value().first), queue.value().second);
+            else printf("easyvk: failed to extract compute queue\n");
+        }
     };
 };
